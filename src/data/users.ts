@@ -74,6 +74,24 @@ export const UI_USERS: Record<string, UiUser> = {
     lastName:  'García',
     zip:       '10001',
   },
+  ERROR: {
+    username:  'error_user',
+    password:  'secret_sauce',
+    role:      'error',
+    canLogin:  true,
+    firstName: 'Ana',
+    lastName:  'García',
+    zip:       '10001',
+  },
+  VISUAL: {
+    username:  'visual_user',
+    password:  'secret_sauce',
+    role:      'visual',
+    canLogin:  true,
+    firstName: 'Ana',
+    lastName:  'García',
+    zip:       '10001',
+  },
 };
 
 // ─── Usuarios API (DummyJSON) ─────────────────────────────────────────────────

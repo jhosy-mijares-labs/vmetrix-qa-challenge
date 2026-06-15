@@ -9,6 +9,11 @@ export class InventoryPage extends BasePage {
   readonly productNames  = this.page.locator('.inventory_item_name');
   readonly productPrices = this.page.locator('.inventory_item_price');
 
+  // Header controls — usados para validaciones de UX/alineación
+  readonly primaryHeader  = this.page.locator('.primary_header');
+  readonly hamburgerMenu  = this.page.locator('.bm-burger-button');
+  readonly cartContainer  = this.page.locator('.shopping_cart_container');
+
   async addProductToCart(productName: string) {
     const slug = productName.toLowerCase().replace(/ /g, '-');
     await this.page.locator(`[data-test="add-to-cart-${slug}"]`).click();

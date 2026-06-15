@@ -1,0 +1,165 @@
+name: 🎭 Playwright Tests + Allure Report
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Disparo manual con dos modos de selección:
+#
+#   run_by = feature  →  usa el campo "feature" para elegir qué spec ejecutar
+#   run_by = user     →  usa el campo "user" para elegir con qué usuario UI correr
+#
+# El campo que no aplica al modo seleccionado es ignorado.
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  workflow_dispatch:
+    inputs:
+
+      run_by:
+        description: '▶ Ejecutar tests por'
+        required: true
+        type: choice
+        options:
+          - feature
+          - user
+        default: feature
+
+      feature:
+        description: '📁 Feature / Spec  (activo cuando run_by = feature)'
+        required: false
+        type: choice
+        options:
+          - all              # UI + API completos
+          - ui:all           # todos los specs UI (todos los usuarios)
+          - ui:cart          # cart.spec.ts
+          - ui:checkout      # checkout.spec.ts
+          - ui:inventory     # inventory.spec.ts
+          - api:all          # todos los specs API
+          - api:auth         # api/auth.spec.ts
+          - api:products     # api/products.spec.ts
+          - api:users        # api/users.spec.ts
+        default: all
+
+      user:
+        description: '👤 Usuario UI  (activo cuando run_by = user)'
+        required: false
+        type: choice
+        options:
+          - all                  # todos los usuarios con canLogin: true
+          - standard             # standard_user
+          - problem              # problem_user
+          - performance_glitch   # performance_glitch_user
+          - error                # error_user
+          - visual               # visual_user
+        default: standard
+
+# ─── Permisos para publicar en GitHub Pages ──────────────────────────────────
+permissions:
+  contents: write   # peaceiris/actions-gh-pages necesita push al branch gh-pages
+
+jobs:
+  test:
+    name: 🧪 Run & Report
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Setup ──────────────────────────────────────────────────────────────
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🎭 Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # ── Resolución del script ───────────────────────────────────────────────
+      - name: 🔍 Resolve npm script
+        id: resolve
+        shell: bash
+        run: |
+          if [ "${{ inputs.run_by }}" = "feature" ]; then
+            case "${{ inputs.feature }}" in
+              ui:cart)      SCRIPT="test:cart"         ;;
+              ui:checkout)  SCRIPT="test:checkout"     ;;
+              ui:inventory) SCRIPT="test:inventory"    ;;
+              ui:all)       SCRIPT="test:ui"           ;;
+              api:auth)     SCRIPT="test:api:auth"     ;;
+              api:products) SCRIPT="test:api:products" ;;
+              api:users)    SCRIPT="test:api:users"    ;;
+              api:all)      SCRIPT="test:api"          ;;
+              *)            SCRIPT="test:all"          ;;
+            esac
+          else
+            case "${{ inputs.user }}" in
+              standard)            SCRIPT="test:ui:standard"    ;;
+              problem)             SCRIPT="test:ui:problem"     ;;
+              performance_glitch)  SCRIPT="test:ui:performance" ;;
+              error)               SCRIPT="test:ui:error"       ;;
+              visual)              SCRIPT="test:ui:visual"      ;;
+              *)                   SCRIPT="test:ui"             ;;
+            esac
+          fi
+          echo "script=$SCRIPT" >> "$GITHUB_OUTPUT"
+          echo "▶ npm run $SCRIPT"
+
+      # ── Ejecución ──────────────────────────────────────────────────────────
+      - name: 🧪 Run tests
+        id: run-tests
+        run: npm run ${{ steps.resolve.outputs.script }}
+        continue-on-error: true   # el report se genera aunque fallen tests
+
+      # ── Historial de Allure (para gráficos de tendencias) ──────────────────
+      - name: 📥 Fetch Allure history from gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-prev
+        continue-on-error: true   # la primera vez el branch no existe
+
+      - name: 🗂️ Restore Allure history
+        shell: bash
+        run: |
+          if [ -d "gh-pages-prev/history" ]; then
+            cp -r gh-pages-prev/history allure-results/
+            echo "✅ Historial restaurado — los gráficos de tendencias estarán disponibles"
+          else
+            echo "ℹ️  Sin historial previo (primera ejecución)"
+          fi
+        continue-on-error: true
+
+      # ── Generación del reporte ─────────────────────────────────────────────
+      - name: 📊 Install Allure CLI
+        if: always()
+        run: npm install -g allure-commandline --quiet
+
+      - name: 📊 Generate Allure report
+        if: always()
+        run: npm run report:generate
+
+      # ── Publicación ────────────────────────────────────────────────────────
+      - name: ⬆️ Upload report as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-run-${{ github.run_number }}
+          path: allure-report/
+          retention-days: 30
+
+      - name: 🚀 Deploy to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
+          commit_message: "ci: allure report — run #${{ github.run_number }} (${{ inputs.run_by }}=${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }})"
+
+      # ── Estado final del job ────────────────────────────────────────────────
+      - name: ❌ Fail if tests failed
+        if: steps.run-tests.outcome == 'failure'
+        run: |
+          echo "::error::Los tests fallaron. Revisa el reporte de Allure para el detalle."
+          exit 1
