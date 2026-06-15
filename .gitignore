@@ -141,3 +141,17 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Test results (generados en cada corrida, no se versionan)
+allure-report/
+allure-results/
+test-results/
+
+# OS
+.DS_Store
+
+# Playwright
+playwright-report/
+
+# Playwright auth state (contiene cookies/tokens de sesión)
+.auth/
