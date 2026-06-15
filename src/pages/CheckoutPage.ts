@@ -19,12 +19,22 @@ export class CheckoutPage extends BasePage {
     await this.zipCodeInput.fill(zip);
   }
 
+  /**
+   * Hace click en Continue. No espera navegación porque el resultado depende
+   * del estado del formulario:
+   * - Formulario válido   → navega a checkout-step-two.html
+   * - Formulario inválido → se queda en step-one mostrando el error
+   *
+   * El test decide qué verificar después (errorMessage o finishButton).
+   * Playwright auto-espera cada locator al momento de interactuar con él.
+   */
   async continue() {
     await this.continueButton.click();
   }
 
   async finish() {
     await this.finishButton.click();
+    await this.page.waitForURL('**/checkout-complete.html');
   }
 
   async getTotalAmount(): Promise<number> {

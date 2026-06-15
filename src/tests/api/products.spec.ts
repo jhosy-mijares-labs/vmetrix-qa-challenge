@@ -1,19 +1,16 @@
-import { test, expect, request } from '@playwright/test';
 import { allure } from 'allure-playwright';
-import { ENV } from '../../config/env';
+import { test, expect } from '../../fixtures/apiFixtures';
 
 test.describe('📦 Products API', () => {
 
-  test('TC-API-04 | GET /products retorna array con total mayor a 0', async () => {
+  test('TC-API-04 | GET /products retorna array con total mayor a 0', async ({ apiContext }) => {
     await allure.epic('API Tests');
     await allure.feature('Productos');
     await allure.severity('critical');
     await allure.tag('positivo');
 
-    const ctx = await request.newContext();
-
     await allure.step('Enviar GET /products', async () => {
-      const response = await ctx.get(`${ENV.API_BASE_URL}/products`);
+      const response = await apiContext.get('/products');
 
       await allure.step('Verificar status 200', async () => {
         expect(response.status()).toBe(200);
@@ -27,16 +24,14 @@ test.describe('📦 Products API', () => {
     });
   });
 
-  test('TC-API-06 | GET /products/9999 retorna 404 para ID inexistente', async () => {
+  test('TC-API-06 | GET /products/9999 retorna 404 para ID inexistente', async ({ apiContext }) => {
     await allure.epic('API Tests');
     await allure.feature('Productos');
     await allure.severity('normal');
     await allure.tag('negativo');
 
-    const ctx = await request.newContext();
-
     await allure.step('Enviar GET /products/9999', async () => {
-      const response = await ctx.get(`${ENV.API_BASE_URL}/products/9999`);
+      const response = await apiContext.get('/products/9999');
 
       await allure.step('Verificar status 404', async () => {
         expect(response.status()).toBe(404);
@@ -49,16 +44,14 @@ test.describe('📦 Products API', () => {
     });
   });
 
-  test('TC-API-07 | Paginación con limit=5&skip=0 retorna exactamente 5 productos', async () => {
+  test('TC-API-07 | Paginación con limit=5&skip=0 retorna exactamente 5 productos', async ({ apiContext }) => {
     await allure.epic('API Tests');
     await allure.feature('Productos');
     await allure.severity('normal');
     await allure.tag('positivo');
 
-    const ctx = await request.newContext();
-
     await allure.step('Enviar GET /products?limit=5&skip=0', async () => {
-      const response = await ctx.get(`${ENV.API_BASE_URL}/products?limit=5&skip=0`);
+      const response = await apiContext.get('/products?limit=5&skip=0');
 
       await allure.step('Verificar status 200', async () => {
         expect(response.status()).toBe(200);

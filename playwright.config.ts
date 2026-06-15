@@ -1,6 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
+import { UI_USERS } from './src/data/users';
+
+// Un proyecto UI por cada usuario que puede hacer login.
+// Playwright corre los mismos specs N veces, una por usuario.
+// Para agregar un nuevo usuario basta con añadirlo en src/data/users.ts.
+const uiProjects = Object.values(UI_USERS)
+  .filter(u => u.canLogin)
+  .map(u => ({
+    name: `UI [${u.role}]`,
+    testMatch: '**/ui/**/*.spec.ts',
+    use: {
+      ...devices['Desktop Chrome'],
+      storageState: `.auth/${u.role}.json`,
+    },
+  }));
 
 export default defineConfig({
+  globalSetup: './global-setup',
   testDir: './src/tests',
   timeout: 30000,
   retries: 1,
@@ -19,7 +35,6 @@ export default defineConfig({
   ],
 
   use: {
-    headless: false,
     baseURL: 'https://www.saucedemo.com',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -27,11 +42,7 @@ export default defineConfig({
   },
 
   projects: [
-    {
-      name: 'UI Tests - Chrome',
-      testMatch: '**/ui/**/*.spec.ts',
-      use: { ...devices['Desktop Chrome'] },
-    },
+    ...uiProjects,
     {
       name: 'API Tests',
       testMatch: '**/api/**/*.spec.ts',

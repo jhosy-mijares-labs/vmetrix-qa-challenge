@@ -152,3 +152,6 @@ test-results/
 
 # Playwright
 playwright-report/
+
+# Playwright auth state (contiene cookies/tokens de sesión)
+.auth/

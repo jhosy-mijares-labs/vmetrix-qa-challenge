@@ -4,12 +4,17 @@
   "description": "QA Automation Challenge | Playwright + TypeScript + Allure | UI & API Testing",
   "main": "index.js",
   "scripts": {
-    "test:ui": "npx playwright test src/tests/ui/ --project='UI Tests - Chrome'",
-    "test:api": "npx playwright test src/tests/api/ --project='API Tests'",
-    "test:all": "npx playwright test",
+    "clean:results": "node -e \"require('fs').rmSync('allure-results', { recursive: true, force: true })\"",
+    "test:ui": "npm run clean:results && npx playwright test --project='UI'",
+    "test:ui:standard": "npm run clean:results && npx playwright test --project='UI [standard]'",
+    "test:ui:problem": "npm run clean:results && npx playwright test --project='UI [problem]'",
+    "test:ui:performance": "npm run clean:results && npx playwright test --project='UI [performance_glitch]'",
+    "test:api": "npm run clean:results && npx playwright test --project='API Tests'",
+    "test:all": "npm run clean:results && npx playwright test",
     "report:generate": "allure generate allure-results --clean -o allure-report",
     "report:open": "allure open allure-report",
-    "report": "npm run report:generate && npm run report:open"
+    "report": "npm run report:generate && npm run report:open",
+    "test:report": "npm run test:all; npm run report"
   },
   "repository": {
     "type": "git",

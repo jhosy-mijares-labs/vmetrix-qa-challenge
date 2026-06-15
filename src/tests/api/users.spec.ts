@@ -1,19 +1,16 @@
-import { test, expect, request } from '@playwright/test';
 import { allure } from 'allure-playwright';
-import { ENV } from '../../config/env';
+import { test, expect } from '../../fixtures/apiFixtures';
 
 test.describe('👤 Users API', () => {
 
-  test('TC-API-08 | GET /users retorna lista de usuarios con campos básicos', async () => {
+  test('TC-API-08 | GET /users retorna lista de usuarios con campos básicos', async ({ authContext }) => {
     await allure.epic('API Tests');
     await allure.feature('Usuarios');
     await allure.severity('normal');
     await allure.tag('positivo');
 
-    const ctx = await request.newContext();
-
     await allure.step('Enviar GET /users', async () => {
-      const response = await ctx.get(`${ENV.API_BASE_URL}/users`);
+      const response = await authContext.get('/users');
 
       await allure.step('Verificar status 200', async () => {
         expect(response.status()).toBe(200);

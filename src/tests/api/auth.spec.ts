@@ -1,20 +1,21 @@
-import { test, expect, request } from '@playwright/test';
 import { allure } from 'allure-playwright';
-import { ENV } from '../../config/env';
+import { test, expect } from '../../fixtures/apiFixtures';
+import { DEFAULT_API_USER } from '../../data/users';
+
+// Nota: este spec usa `apiContext` (sin auth) porque su propósito es
+// verificar el comportamiento del propio endpoint de login.
 
 test.describe('🔐 Auth API', () => {
 
-  test('TC-API-01 | Login con credenciales válidas retorna token', async () => {
+  test('TC-API-01 | Login con credenciales válidas retorna token', async ({ apiContext }) => {
     await allure.epic('API Tests');
     await allure.feature('Autenticación');
     await allure.severity('blocker');
     await allure.tag('positivo');
 
-    const ctx = await request.newContext();
-
     await allure.step('Enviar POST /auth/login con credenciales válidas', async () => {
-      const response = await ctx.post(`${ENV.API_BASE_URL}/auth/login`, {
-        data: { username: ENV.API_USER, password: ENV.API_PASSWORD },
+      const response = await apiContext.post('/auth/login', {
+        data: { username: DEFAULT_API_USER.username, password: DEFAULT_API_USER.password },
       });
 
       await allure.step('Verificar status 200', async () => {
@@ -25,22 +26,20 @@ test.describe('🔐 Auth API', () => {
         const body = await response.json();
         expect(body).toHaveProperty('accessToken');
         expect(body).toHaveProperty('refreshToken');
-        expect(body.username).toBe(ENV.API_USER);
+        expect(body.username).toBe(DEFAULT_API_USER.username);
       });
     });
   });
 
-  test('TC-API-02 | Login con contraseña incorrecta retorna error', async () => {
+  test('TC-API-02 | Login con contraseña incorrecta retorna error', async ({ apiContext }) => {
     await allure.epic('API Tests');
     await allure.feature('Autenticación');
     await allure.severity('critical');
     await allure.tag('negativo');
 
-    const ctx = await request.newContext();
-
     await allure.step('Enviar POST /auth/login con contraseña incorrecta', async () => {
-      const response = await ctx.post(`${ENV.API_BASE_URL}/auth/login`, {
-        data: { username: ENV.API_USER, password: 'wrongpassword' },
+      const response = await apiContext.post('/auth/login', {
+        data: { username: DEFAULT_API_USER.username, password: 'wrongpassword' },
       });
 
       await allure.step('Verificar status 400', async () => {
