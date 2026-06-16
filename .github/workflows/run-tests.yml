@@ -167,16 +167,14 @@ jobs:
             --output "BugReport_${TIMESTAMP}.docx" \
             --run-info "${RUN_INFO}"
 
-      # ── Upload a Google Drive (vía Playwright) ────────────────────────────────
-      # Requiere el secret GOOGLE_STORAGE_STATE con la sesión capturada localmente.
-      # Setup ONE-TIME: node scripts/google-auth.js → copiar google-auth.json como
-      # secret GOOGLE_STORAGE_STATE en Settings → Secrets and variables → Actions
-      - name: ☁️ Upload bug report to Google Drive
+      # ── Upload .docx como artifact del run ───────────────────────────────────
+      - name: 📎 Upload bug report as artifact
         if: always()
-        env:
-          GOOGLE_STORAGE_STATE: ${{ secrets.GOOGLE_STORAGE_STATE }}
-          DRIVE_FOLDER_ID: 1owkw8j0LYPf-qql2R8D2WYqZakZyiYt1
-        run: node scripts/upload-to-drive-pw.js
+        uses: actions/upload-artifact@v4
+        with:
+          name: bug-report-run-${{ github.run_number }}
+          path: ${{ env.BUG_REPORT_PATH }}
+          retention-days: 30
 
       # ── Job summary ────────────────────────────────────────────────────────────
       - name: 📋 Job summary
@@ -192,12 +190,7 @@ jobs:
           echo "| Bugs en reporte | \`${BUG_COUNT:-0}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🐞 Bug Report" >> $GITHUB_STEP_SUMMARY
-          if [ -n "${DRIVE_FILE_URL}" ]; then
-            echo "📄 **[${DRIVE_FILE_NAME}](${DRIVE_FILE_URL})**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "> ⚠️ Reporte generado localmente. Para subir automáticamente:" >> $GITHUB_STEP_SUMMARY
-            echo "> Configurar \`GOOGLE_CREDENTIALS_JSON\` en *Settings → Secrets → Actions*" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "📎 Disponible como artifact **bug-report-run-${{ github.run_number }}** en este run." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Allure Report" >> $GITHUB_STEP_SUMMARY
           echo "📈 [Ver en GitHub Pages](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY
