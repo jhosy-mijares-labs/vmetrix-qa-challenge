@@ -26,7 +26,8 @@ vmetrix-qa-challenge/
 ├── .github/
 │   └── workflows/
 │       ├── run-ui-tests.yml        # 🎭 UI Tests + Allure Report
-│       └── run-api-tests.yml       # 🎭 API Tests + Allure Report
+│       ├── run-api-tests.yml       # 🎭 API Tests + Allure Report
+│       └── release.yml             # 🏷️ Version & Release (push a main)
 ├── playwright.config.ts            # Configuración global + proyectos por usuario
 ├── global-setup.ts                 # Login previo → genera .auth/<role>.json
 ├── tsconfig.json
@@ -163,12 +164,15 @@ npm run test:inventory
 
 El repositorio tiene dos workflows independientes que se ejecutan manualmente desde la pestaña **Actions**:
 
-| Workflow | Archivo | Inputs |
-|---|---|---|
-| 🎭 UI Tests + Allure Report | `run-ui-tests.yml` | `run_by` (feature / user), `feature`, `user` |
-| 🎭 API Tests + Allure Report | `run-api-tests.yml` | `feature` (all, auth, products, users) |
+| Workflow | Archivo | Trigger | Descripción |
+|---|---|---|---|
+| 🎭 UI Tests + Allure Report | `run-ui-tests.yml` | Manual | Ejecuta tests UI y publica reporte Allure |
+| 🎭 API Tests + Allure Report | `run-api-tests.yml` | Manual | Ejecuta tests API y publica reporte Allure |
+| 🏷️ Version & Release | `release.yml` | Push a `main` | Crea tag semántico y GitHub Release automáticamente |
 
-Ambos publican el reporte Allure en GitHub Pages al finalizar.
+### Control de versiones
+
+Cada merge a `main` sube automáticamente el **patch** (`v1.0.0 → v1.0.1 → v1.0.2`), crea el tag y genera un GitHub Release con el listado de commits incluidos.
 
 ---
 

@@ -1,0 +1,63 @@
+name: 🏷️ Version & Release
+
+# Se ejecuta en cada merge a main — siempre sube patch (x.x.N)
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 🏷️ Bump patch & release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔢 Get latest tag
+        id: latest_tag
+        run: |
+          git fetch --tags
+          LATEST=$(git tag --sort=-v:refname | grep '^v' | head -n 1)
+          echo "tag=${LATEST:-v0.0.0}" >> "$GITHUB_OUTPUT"
+
+      - name: 🏷️ Bump patch version
+        id: new_tag
+        run: |
+          VERSION="${{ steps.latest_tag.outputs.tag }}"
+          VERSION="${VERSION#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "tag=v${MAJOR}.${MINOR}.$((PATCH + 1))" >> "$GITHUB_OUTPUT"
+
+      - name: 📋 Generate changelog
+        id: changelog
+        run: |
+          LATEST="${{ steps.latest_tag.outputs.tag }}"
+          if [ "$LATEST" = "v0.0.0" ]; then
+            LOG=$(git log --pretty=format:"- %s" | head -20)
+          else
+            LOG=$(git log "${LATEST}..HEAD" --pretty=format:"- %s")
+          fi
+          echo "log<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$LOG" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: 📌 Push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.new_tag.outputs.tag }}
+          git push origin ${{ steps.new_tag.outputs.tag }}
+
+      - name: 🚀 Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.new_tag.outputs.tag }}
+          name: Release ${{ steps.new_tag.outputs.tag }}
+          body: ${{ steps.changelog.outputs.log }}
