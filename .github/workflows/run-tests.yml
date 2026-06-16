@@ -193,7 +193,7 @@ jobs:
           echo "📎 Disponible como artifact **bug-report-run-${{ github.run_number }}** en este run." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Allure Report" >> $GITHUB_STEP_SUMMARY
-          echo "📈 [Ver en GitHub Pages](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY
+          echo "📎 Disponible como artifact **allure-report-run-${{ github.run_number }}** en este run." >> $GITHUB_STEP_SUMMARY
 
       # ── Estado final del job ────────────────────────────────────────────────
       - name: ❌ Fail if tests failed
