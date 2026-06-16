@@ -2,6 +2,8 @@
 
 Framework de automatización de pruebas UI y API usando **Playwright + TypeScript + Allure**.
 
+[![Allure Report](https://img.shields.io/badge/Allure%20Report-live-brightgreen)](https://jhosy-mijares-labs.github.io/vmetrix-qa-challenge/)
+
 ---
 
 ## 🧰 Stack Tecnológico
@@ -154,6 +156,16 @@ npm run test:inventory
 ---
 
 ## 📊 Reportes Allure
+
+### 🌐 Reporte en vivo (CI)
+
+Cada ejecución en GitHub Actions publica automáticamente el reporte en GitHub Pages:
+
+**[👉 Ver último reporte](https://jhosy-mijares-labs.github.io/vmetrix-qa-challenge/)**
+
+> El reporte se actualiza con cada run y mantiene historial de tendencias entre ejecuciones.
+
+### 💻 Local
 
 Para generar y abrir el reporte después de cualquier ejecución:
 

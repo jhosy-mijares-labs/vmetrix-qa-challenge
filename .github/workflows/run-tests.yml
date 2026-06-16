@@ -194,6 +194,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Allure Report" >> $GITHUB_STEP_SUMMARY
           echo "📎 Disponible como artifact **allure-report-run-${{ github.run_number }}** en este run." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🌐 **[Ver reporte en vivo →](https://jhosy-mijares-labs.github.io/vmetrix-qa-challenge/)**" >> $GITHUB_STEP_SUMMARY
 
       # ── Estado final del job ────────────────────────────────────────────────
       - name: ❌ Fail if tests failed
