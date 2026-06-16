@@ -149,12 +149,39 @@ jobs:
           path: allure-report/
           retention-days: 30
 
+      - name: 📦 Prepare versioned deploy
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p deploy/run-${{ github.run_number }}
+          cp -r allure-report/. deploy/run-${{ github.run_number }}/
+          # Guardar history en raíz para que el próximo run lo restaure
+          if [ -d "allure-report/history" ]; then
+            cp -r allure-report/history deploy/history
+          fi
+          # index.html raíz redirige siempre al run más reciente
+          cat > deploy/index.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0;url=run-${{ github.run_number }}/">
+            <script>window.location.replace('run-${{ github.run_number }}/');</script>
+            <title>Redirigiendo al reporte más reciente...</title>
+          </head>
+          <body>
+            <p>Redirigiendo a <a href="run-${{ github.run_number }}/">reporte run #${{ github.run_number }}</a>...</p>
+          </body>
+          </html>
+          EOF
+
       - name: 🚀 Deploy to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./allure-report
+          publish_dir: ./deploy
+          force_orphan: true
           commit_message: "ci: allure report — run #${{ github.run_number }} (${{ inputs.run_by }}=${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }})"
 
       # ── Bug Report .docx ──────────────────────────────────────────────────────
