@@ -133,13 +133,13 @@ npm run test:ui:visual
 
 ### UI — por feature
 
-**Cart** — `standard_user`
+**Cart** — usuarios `standard`, `problem` y `performance_glitch`
 
 ```bash
 npm run test:cart
 ```
 
-**Checkout** — `standard_user`
+**Checkout** — usuarios `standard`, `problem` y `performance_glitch`
 
 ```bash
 npm run test:checkout
@@ -183,8 +183,8 @@ npm run report:open       # Abre en el navegador
 | `test:ui:performance` | UI tests solo con `performance_glitch_user` |
 | `test:ui:error` | UI tests solo con `error_user` |
 | `test:ui:visual` | UI tests solo con `visual_user` |
-| `test:cart` | Solo `cart.spec.ts` con `standard_user` |
-| `test:checkout` | Solo `checkout.spec.ts` con `standard_user` |
+| `test:cart` | Solo `cart.spec.ts` con `standard`, `problem` y `performance_glitch` |
+| `test:checkout` | Solo `checkout.spec.ts` con `standard`, `problem` y `performance_glitch` |
 | `test:inventory` | Solo `inventory.spec.ts` con standard, error y visual |
 | `test:api` | Todos los tests de API |
 | `test:api:auth` | Solo `api/auth.spec.ts` |
