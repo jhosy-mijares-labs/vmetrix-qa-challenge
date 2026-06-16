@@ -203,10 +203,44 @@ jobs:
           path: ${{ env.BUG_REPORT_PATH }}
           retention-days: 30
 
+      # ── Esperar que GitHub Pages sirva el reporte ──────────────────────────────
+      - name: ⏳ Wait for Pages deployment
+        if: always()
+        id: wait-pages
+        shell: bash
+        run: |
+          PAGES_URL="https://jhosy-mijares-labs.github.io/vmetrix-qa-challenge/run-${{ github.run_number }}/"
+          MAX_WAIT=180
+          INTERVAL=15
+          ELAPSED=0
+
+          echo "⏳ Esperando que GitHub Pages sirva: $PAGES_URL"
+
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PAGES_URL")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Reporte disponible ($ELAPSED s)"
+              echo "pages_url=$PAGES_URL" >> "$GITHUB_OUTPUT"
+              echo "pages_ready=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "  → HTTP $STATUS — reintentando en ${INTERVAL}s... ($ELAPSED s / ${MAX_WAIT}s)"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo "⚠️ Timeout: Pages no respondió en ${MAX_WAIT}s. El link puede tardar un momento más."
+          echo "pages_url=$PAGES_URL" >> "$GITHUB_OUTPUT"
+          echo "pages_ready=false" >> "$GITHUB_OUTPUT"
+
       # ── Job summary ────────────────────────────────────────────────────────────
       - name: 📋 Job summary
         if: always()
         run: |
+          PAGES_URL="${{ steps.wait-pages.outputs.pages_url }}"
+          PAGES_READY="${{ steps.wait-pages.outputs.pages_ready }}"
+          PAGES_STATUS=$( [ "$PAGES_READY" = "true" ] && echo "✅ Listo" || echo "⚠️ Puede tardar un momento más" )
+
           echo "## 🧪 VMetrix QA — Run \`#${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Campo       | Valor |" >> $GITHUB_STEP_SUMMARY
@@ -215,6 +249,7 @@ jobs:
           echo "| Selección   | \`${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests       | ${{ steps.run-tests.outcome == 'success' && '✅ Pasaron' || '❌ Fallaron' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Bugs en reporte | \`${BUG_COUNT:-0}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Pages | ${PAGES_STATUS} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🐞 Bug Report" >> $GITHUB_STEP_SUMMARY
           echo "📎 Disponible como artifact **bug-report-run-${{ github.run_number }}** en este run." >> $GITHUB_STEP_SUMMARY
@@ -222,7 +257,7 @@ jobs:
           echo "### 📊 Allure Report" >> $GITHUB_STEP_SUMMARY
           echo "📎 Disponible como artifact **allure-report-run-${{ github.run_number }}** en este run." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🌐 **[Ver reporte en vivo →](https://jhosy-mijares-labs.github.io/vmetrix-qa-challenge/)**" >> $GITHUB_STEP_SUMMARY
+          echo "🌐 **[Ver reporte en vivo →](${PAGES_URL})**" >> $GITHUB_STEP_SUMMARY
 
       # ── Estado final del job ────────────────────────────────────────────────
       - name: ❌ Fail if tests failed
