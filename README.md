@@ -197,7 +197,7 @@ npm run report:open       # Abre en el navegador
 | `test:ui:visual` | UI tests solo con `visual_user` |
 | `test:cart` | Solo `cart.spec.ts` con `standard`, `problem` y `performance_glitch` |
 | `test:checkout` | Solo `checkout.spec.ts` con `standard`, `problem` y `performance_glitch` |
-| `test:inventory` | Solo `inventory.spec.ts` con standard, error y visual |
+| `test:inventory` | Solo `inventory.spec.ts` con `standard`, `error` y `visual` |
 | `test:api` | Todos los tests de API |
 | `test:api:auth` | Solo `api/auth.spec.ts` |
 | `test:api:products` | Solo `api/products.spec.ts` |
