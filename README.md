@@ -12,7 +12,7 @@ Framework de automatización de pruebas UI y API usando **Playwright + TypeScrip
 |---|---|---|
 | Node.js | 24 | Runtime |
 | TypeScript | ^5.4 | Lenguaje principal |
-| JavaScript | ES2022 | Scripts de automatización (bug report, Drive upload) |
+| JavaScript | ES2022 | Scripts de automatización (bug report) |
 | Playwright | ^1.61 | UI & API Testing |
 | Allure | ^3.10 | Reportes |
 | Java | ≥ 17 | Requerido por Allure CLI |
@@ -163,7 +163,7 @@ Cada ejecución en GitHub Actions publica automáticamente el reporte en GitHub 
 
 **[👉 Ver último reporte](https://jhosy-mijares-labs.github.io/vmetrix-qa-challenge/)**
 
-> El reporte se actualiza con cada run y mantiene historial de tendencias entre ejecuciones.
+> Cada run se despliega en su propia URL versionada (`/run-N/`). La URL raíz siempre redirige al reporte más reciente, sin problemas de caché para ningún visitante. El historial de tendencias se mantiene entre ejecuciones.
 
 ### 💻 Local
 

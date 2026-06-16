@@ -22,8 +22,7 @@
     "report:generate": "allure generate allure-results --clean -o allure-report",
     "report:open": "allure open allure-report",
     "report": "npm run report:generate && npm run report:open",
-    "test:report": "npm run test:all; npm run report",
-    "drive:auth": "node scripts/google-auth.js"
+    "test:report": "npm run test:all; npm run report"
   },
   "repository": {
     "type": "git",
