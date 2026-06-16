@@ -2,16 +2,19 @@
 
 Framework de automatización de pruebas UI y API usando **Playwright + TypeScript + Allure**.
 
+[![Allure Report](https://img.shields.io/badge/Allure%20Report-live-brightgreen)](https://jhosy-mijares-labs.github.io/vmetrix-qa-challenge/)
+
 ---
 
 ## 🧰 Stack Tecnológico
 
 | Herramienta | Versión | Uso |
 |---|---|---|
-| Node.js | ≥ 18.x | Runtime |
-| TypeScript | ^5.4 | Lenguaje |
-| Playwright | ^1.44 | UI & API Testing |
-| Allure | ^3.x | Reportes |
+| Node.js | 24 | Runtime |
+| TypeScript | ^5.4 | Lenguaje principal |
+| JavaScript | ES2022 | Scripts de automatización (bug report, Drive upload) |
+| Playwright | ^1.61 | UI & API Testing |
+| Allure | ^3.10 | Reportes |
 | Java | ≥ 17 | Requerido por Allure CLI |
 
 ---
@@ -25,9 +28,7 @@ vmetrix-qa-challenge/
 ├── tsconfig.json
 ├── package.json
 ├── scripts/
-│   ├── generate-bug-report.js # Lee allure-results y genera .docx con fallos
-│   ├── upload-to-drive-pw.js  # Sube el .docx a Google Drive vía Playwright
-│   └── google-auth.js         # Setup one-time: captura sesión de Google
+│   └── generate-bug-report.js # Lee allure-results y genera .docx con fallos
 └── src/
     ├── config/
     │   └── env.ts
@@ -134,13 +135,13 @@ npm run test:ui:visual
 
 ### UI — por feature
 
-**Cart** — `standard_user`
+**Cart** — usuarios `standard`, `problem` y `performance_glitch`
 
 ```bash
 npm run test:cart
 ```
 
-**Checkout** — `standard_user`
+**Checkout** — usuarios `standard`, `problem` y `performance_glitch`
 
 ```bash
 npm run test:checkout
@@ -155,6 +156,16 @@ npm run test:inventory
 ---
 
 ## 📊 Reportes Allure
+
+### 🌐 Reporte en vivo (CI)
+
+Cada ejecución en GitHub Actions publica automáticamente el reporte en GitHub Pages:
+
+**[👉 Ver último reporte](https://jhosy-mijares-labs.github.io/vmetrix-qa-challenge/)**
+
+> El reporte se actualiza con cada run y mantiene historial de tendencias entre ejecuciones.
+
+### 💻 Local
 
 Para generar y abrir el reporte después de cualquier ejecución:
 
@@ -184,8 +195,8 @@ npm run report:open       # Abre en el navegador
 | `test:ui:performance` | UI tests solo con `performance_glitch_user` |
 | `test:ui:error` | UI tests solo con `error_user` |
 | `test:ui:visual` | UI tests solo con `visual_user` |
-| `test:cart` | Solo `cart.spec.ts` con `standard_user` |
-| `test:checkout` | Solo `checkout.spec.ts` con `standard_user` |
+| `test:cart` | Solo `cart.spec.ts` con `standard`, `problem` y `performance_glitch` |
+| `test:checkout` | Solo `checkout.spec.ts` con `standard`, `problem` y `performance_glitch` |
 | `test:inventory` | Solo `inventory.spec.ts` con standard, error y visual |
 | `test:api` | Todos los tests de API |
 | `test:api:auth` | Solo `api/auth.spec.ts` |
@@ -200,27 +211,15 @@ npm run report:open       # Abre en el navegador
 
 ## 🐞 Bug Report automático
 
-Al finalizar cada ejecución en CI, el workflow genera automáticamente un reporte de bugs en `.docx` con los tests fallidos y lo sube a Google Drive.
+Al finalizar cada ejecución en CI, el workflow genera automáticamente un reporte de bugs en `.docx` con los tests fallidos y lo publica como artifact del run.
 
 ### Cómo funciona
 
-1. `scripts/generate-bug-report.js` lee los archivos `allure-results/*.json`, detecta los tests fallidos y genera un archivo `BugReport_<timestamp>.docx`.
-2. `scripts/upload-to-drive-pw.js` sube ese `.docx` a la carpeta de Drive configurada usando una sesión de Google capturada previamente (sin Service Account ni API keys).
+`scripts/generate-bug-report.js` lee los archivos `allure-results/*.json`, detecta los tests fallidos y genera un archivo `BugReport_<timestamp>.docx`. El workflow lo sube como artifact `bug-report-run-N` con 30 días de retención.
 
-### Setup one-time (solo la primera vez)
+### Dónde descargarlo
 
-```bash
-# 1. Autenticarse con Google y capturar la sesión
-node scripts/google-auth.js
-# Abre el navegador → iniciar sesión → el script guarda google-auth.json
-
-# 2. Copiar el contenido de google-auth.json como secret en GitHub:
-#    Settings → Secrets and variables → Actions → New repository secret
-#    Nombre: GOOGLE_STORAGE_STATE
-#    Valor:  contenido completo del archivo google-auth.json
-```
-
-> Sin el secret `GOOGLE_STORAGE_STATE` configurado, el reporte `.docx` se genera igual pero no se sube a Drive. El CI no falla por esto.
+En la página del workflow run → sección **Artifacts** → `bug-report-run-N`. No requiere ninguna configuración adicional.
 
 ---
 
