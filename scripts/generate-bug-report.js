@@ -119,6 +119,122 @@ const divider = () => new Paragraph({
   children: [],
 });
 
+// ── Interpretación funcional del error ───────────────────────────────────────
+/**
+ * Convierte el mensaje técnico de Playwright en una descripción funcional
+ * orientada a QA: qué se esperaba, qué ocurrió y cuál es el impacto.
+ */
+function buildFunctionalMessage(testName, rawMessage) {
+  if (!rawMessage) return 'No se registró información del error en la ejecución.';
+
+  const msg = rawMessage.trim();
+
+  // Extraer valores Expected / Received genéricos
+  const expMatch = msg.match(/Expected[^:]*:\s*"?([^"\n]+)"?/);
+  const recMatch = msg.match(/Received[^:]*:\s*"?([^"\n]+)"?/);
+  const expected = expMatch ? expMatch[1].trim() : null;
+  const received = recMatch ? recMatch[1].trim() : null;
+
+  // ── Caso: toHaveText ──────────────────────────────────────────────────────
+  if (msg.includes('toHaveText')) {
+    const exp = expected || '(desconocido)';
+    const rec = received || '(desconocido)';
+    return (
+      `El texto visible en pantalla no coincide con el valor esperado. ` +
+      `Se esperaba que el elemento mostrara "${exp}", pero el sistema mostró "${rec}". ` +
+      `Esto indica que la interfaz no está reflejando correctamente el estado actual de la aplicación.`
+    );
+  }
+
+  // ── Caso: toEqual con Array (ordenamiento / colecciones) ──────────────────
+  if (msg.includes('toEqual') && msg.includes('Array')) {
+    // Líneas con "-" son expected-only; con "+" son received-only; sin prefijo son comunes
+    // Formato Jest/Playwright: `-   "item",`  /  `+   "item",`  /  `    "item",`
+    const expItems    = [...msg.matchAll(/^-\s+"([^"]+)"/gm)].map(m => m[1]);
+    const recItems    = [...msg.matchAll(/^\+\s+"([^"]+)"/gm)].map(m => m[1]);
+    const commonItems = [...msg.matchAll(/^ {4}"([^"]+)"/gm)].map(m => m[1]);
+
+    // Reconstruir orden completo aproximado
+    const fullExpected = [...expItems, ...commonItems];
+    const fullReceived = [...recItems, ...commonItems];
+
+    // Detectar si parece un problema de ordenamiento (mismo contenido, diferente orden)
+    const isSorting = expItems.length > 0 && recItems.length > 0;
+
+    if (isSorting) {
+      const firstExp = fullExpected[0] || expItems[0] || '?';
+      const firstRec = fullReceived[0] || recItems[0] || '?';
+      return (
+        `Los elementos no se presentan en el orden esperado según el criterio de ordenamiento seleccionado. ` +
+        `Se esperaba que el primer elemento fuera "${firstExp}", ` +
+        `pero el sistema muestra "${firstRec}" en primera posición. ` +
+        `El orden completo resultante no corresponde al filtro aplicado.`
+      );
+    }
+
+    // Caso genérico: listas no coinciden
+    return (
+      `Los elementos mostrados no coinciden con los esperados. ` +
+      `Se encontraron ${expItems.length} elemento(s) que deberían aparecer y no aparecen, ` +
+      `y ${recItems.length} elemento(s) que aparecen pero no deberían.`
+    );
+  }
+
+  // ── Caso: comparación numérica (layout / posicionamiento) ─────────────────
+  const isNumericAssertion =
+    msg.includes('toBeLessThanOrEqual') ||
+    msg.includes('toBeGreaterThanOrEqual') ||
+    msg.includes('toBeLessThan') ||
+    msg.includes('toBeGreaterThan');
+
+  if (isNumericAssertion) {
+    // El mensaje personalizado suele estar en la primera línea tras "Error:"
+    const customLine = msg.match(/Error:\s*([^\n]+(?:\n(?!expect)[^\n]+)*)/)?.[1]?.trim() || '';
+
+    // Expected con <= o >= (e.g. "<= 57")
+    const numExpMatch = msg.match(/Expected[^:]*:\s*([<>=]+\s*[\d.]+)/);
+    const numRecMatch = msg.match(/Received[^:]*:\s*([\d.]+)/);
+    const numExp = numExpMatch ? numExpMatch[1].trim() : expected;
+    const numRec = numRecMatch ? numRecMatch[1].trim() : received;
+
+    let description = customLine
+      ? `Fallo de disposición visual: ${customLine}.`
+      : 'Un elemento de la interfaz se renderiza fuera de los límites esperados.';
+
+    if (numExp && numRec) {
+      description +=
+        ` El valor obtenido (${numRec}) no cumple la condición esperada (${numExp}), ` +
+        `lo que puede causar superposición o desalineación de elementos en pantalla.`;
+    }
+    return description;
+  }
+
+  // ── Caso: mensaje de error personalizado legible ──────────────────────────
+  const customErrorMatch = msg.match(/Error:\s*([^\n]+)/);
+  if (customErrorMatch) {
+    const customMsg = customErrorMatch[1].trim();
+    // Si ya es legible (no parece un assertion técnico de Jest/Playwright), usarlo directamente
+    const isTechnical = /expect\(|locator\(|\.to[A-Z]/.test(customMsg);
+    if (!isTechnical) {
+      let result = customMsg;
+      if (expected && received) {
+        result += ` Se esperaba "${expected}" pero se obtuvo "${received}".`;
+      }
+      return result;
+    }
+  }
+
+  // ── Fallback: descripción genérica ────────────────────────────────────────
+  if (expected && received) {
+    return (
+      `La verificación falló: se esperaba "${expected}" pero el sistema devolvió "${received}". ` +
+      `Revisar el comportamiento de la funcionalidad asociada al test.`
+    );
+  }
+
+  return 'La prueba finalizó con un resultado inesperado. Revisar los logs de ejecución para obtener más detalles del fallo.';
+}
+
 // ── Leer fallos de allure-results ─────────────────────────────────────────────
 function readFailures() {
   if (!fs.existsSync(RESULTS_DIR)) {
@@ -222,10 +338,10 @@ function bugSection(bug, isFirst) {
 
   items.push(new Paragraph({ spacing: { before: 200, after: 0 }, children: [] }));
 
-  // Mensaje de error
-  items.push(sectionLabel('Mensaje de Error'));
-  const lines = (bug.message || 'Sin detalle disponible').split('\n');
-  items.push(...lines.map(codeLine));
+  // Descripción funcional del error
+  items.push(sectionLabel('Descripción del Fallo'));
+  const functionalDesc = buildFunctionalMessage(bug.name, bug.message);
+  items.push(bodyPara(functionalDesc));
 
   items.push(new Paragraph({ spacing: { before: 200, after: 80 }, children: [] }));
 
