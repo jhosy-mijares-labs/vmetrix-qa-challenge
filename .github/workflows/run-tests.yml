@@ -157,6 +157,51 @@ jobs:
           publish_dir: ./allure-report
           commit_message: "ci: allure report — run #${{ github.run_number }} (${{ inputs.run_by }}=${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }})"
 
+      # ── Bug Report .docx ──────────────────────────────────────────────────────
+      - name: 📝 Generate bug report
+        if: always()
+        run: |
+          TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
+          RUN_INFO="Run #${{ github.run_number }} | ${{ inputs.run_by }}: ${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }}"
+          node scripts/generate-bug-report.js \
+            --output "BugReport_${TIMESTAMP}.docx" \
+            --run-info "${RUN_INFO}"
+
+      # ── Upload a Google Drive (vía Playwright) ────────────────────────────────
+      # Requiere el secret GOOGLE_STORAGE_STATE con la sesión capturada localmente.
+      # Setup ONE-TIME: node scripts/google-auth.js → copiar google-auth.json como
+      # secret GOOGLE_STORAGE_STATE en Settings → Secrets and variables → Actions
+      - name: ☁️ Upload bug report to Google Drive
+        if: always()
+        env:
+          GOOGLE_STORAGE_STATE: ${{ secrets.GOOGLE_STORAGE_STATE }}
+          DRIVE_FOLDER_ID: 1owkw8j0LYPf-qql2R8D2WYqZakZyiYt1
+        run: node scripts/upload-to-drive-pw.js
+
+      # ── Job summary ────────────────────────────────────────────────────────────
+      - name: 📋 Job summary
+        if: always()
+        run: |
+          echo "## 🧪 VMetrix QA — Run \`#${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Campo       | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Modo        | \`${{ inputs.run_by }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Selección   | \`${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests       | ${{ steps.run-tests.outcome == 'success' && '✅ Pasaron' || '❌ Fallaron' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bugs en reporte | \`${BUG_COUNT:-0}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🐞 Bug Report" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${DRIVE_FILE_URL}" ]; then
+            echo "📄 **[${DRIVE_FILE_NAME}](${DRIVE_FILE_URL})**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "> ⚠️ Reporte generado localmente. Para subir automáticamente:" >> $GITHUB_STEP_SUMMARY
+            echo "> Configurar \`GOOGLE_CREDENTIALS_JSON\` en *Settings → Secrets → Actions*" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Allure Report" >> $GITHUB_STEP_SUMMARY
+          echo "📈 [Ver en GitHub Pages](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY
+
       # ── Estado final del job ────────────────────────────────────────────────
       - name: ❌ Fail if tests failed
         if: steps.run-tests.outcome == 'failure'

@@ -5,14 +5,14 @@
   "main": "index.js",
   "scripts": {
     "clean:results": "node -e \"require('fs').rmSync('allure-results', { recursive: true, force: true })\"",
-    "test:ui": "npm run clean:results && npx playwright test --project='UI'",
+    "test:ui": "npm run clean:results && npx playwright test src/tests/ui/",
     "test:ui:standard": "npm run clean:results && npx playwright test --project='UI [standard]'",
     "test:ui:problem": "npm run clean:results && npx playwright test --project='UI [problem]'",
     "test:ui:performance": "npm run clean:results && npx playwright test --project='UI [performance_glitch]'",
     "test:ui:error": "npm run clean:results && npx playwright test --project='UI [error]'",
     "test:ui:visual": "npm run clean:results && npx playwright test --project='UI [visual]'",
-    "test:cart": "npm run clean:results && npx playwright test cart.spec.ts --project='UI'",
-    "test:checkout": "npm run clean:results && npx playwright test checkout.spec.ts --project='UI'",
+    "test:cart": "npm run clean:results && npx playwright test src/tests/ui/cart.spec.ts --project='UI [standard]'",
+    "test:checkout": "npm run clean:results && npx playwright test src/tests/ui/checkout.spec.ts --project='UI [standard]'",
     "test:inventory": "npm run clean:results && npx playwright test inventory.spec.ts --project='UI [standard]' --project='UI [error]' --project='UI [visual]'",
     "test:api": "npm run clean:results && npx playwright test --project='API Tests'",
     "test:api:auth": "npm run clean:results && npx playwright test src/tests/api/auth.spec.ts --project='API Tests'",
@@ -22,7 +22,8 @@
     "report:generate": "allure generate allure-results --clean -o allure-report",
     "report:open": "allure open allure-report",
     "report": "npm run report:generate && npm run report:open",
-    "test:report": "npm run test:all; npm run report"
+    "test:report": "npm run test:all; npm run report",
+    "drive:auth": "node scripts/google-auth.js"
   },
   "repository": {
     "type": "git",
@@ -38,9 +39,10 @@
   "homepage": "https://github.com/jhosy-mijares-labs/vmetrix-qa-challenge#readme",
   "devDependencies": {
     "@playwright/test": "^1.61.0",
+    "@types/node": "^20.0.0",
     "allure-js-commons": "^3.10.0",
     "allure-playwright": "^3.10.0",
-    "typescript": "^5.4.0",
-    "@types/node": "^20.0.0"
+    "docx": "^9.7.1",
+    "typescript": "^5.4.0"
   }
 }
