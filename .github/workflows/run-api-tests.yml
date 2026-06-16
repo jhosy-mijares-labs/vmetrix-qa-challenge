@@ -1,58 +1,23 @@
-name: 🎭 Playwright Tests + Allure Report
+name: 🎭 API Tests + Allure Report
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Disparo manual con dos modos de selección:
-#
-#   run_by = feature  →  usa el campo "feature" para elegir qué spec ejecutar
-#   run_by = user     →  usa el campo "user" para elegir con qué usuario UI correr
-#
-# El campo que no aplica al modo seleccionado es ignorado.
-# ─────────────────────────────────────────────────────────────────────────────
 on:
   workflow_dispatch:
     inputs:
 
-      run_by:
-        description: '▶ Ejecutar tests por'
-        required: true
-        type: choice
-        options:
-          - feature
-          - user
-        default: feature
-
       feature:
-        description: '📁 Feature / Spec  (activo cuando run_by = feature)'
+        description: '📁 Spec a ejecutar'
         required: false
         type: choice
         options:
-          - all              # UI + API completos
-          - ui:all           # todos los specs UI (todos los usuarios)
-          - ui:cart          # cart.spec.ts
-          - ui:checkout      # checkout.spec.ts
-          - ui:inventory     # inventory.spec.ts
-          - api:all          # todos los specs API
+          - all              # todos los specs API
           - api:auth         # api/auth.spec.ts
           - api:products     # api/products.spec.ts
           - api:users        # api/users.spec.ts
         default: all
 
-      user:
-        description: '👤 Usuario UI  (activo cuando run_by = user)'
-        required: false
-        type: choice
-        options:
-          - all                  # todos los usuarios con canLogin: true
-          - standard             # standard_user
-          - problem              # problem_user
-          - performance_glitch   # performance_glitch_user
-          - error                # error_user
-          - visual               # visual_user
-        default: standard
-
 # ─── Permisos para publicar en GitHub Pages ──────────────────────────────────
 permissions:
-  contents: write   # peaceiris/actions-gh-pages necesita push al branch gh-pages
+  contents: write
 
 jobs:
   test:
@@ -73,6 +38,7 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
+      # Chromium requerido por globalSetup (genera .auth/ para UI users)
       - name: 🎭 Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
@@ -81,28 +47,12 @@ jobs:
         id: resolve
         shell: bash
         run: |
-          if [ "${{ inputs.run_by }}" = "feature" ]; then
-            case "${{ inputs.feature }}" in
-              ui:cart)      SCRIPT="test:cart"         ;;
-              ui:checkout)  SCRIPT="test:checkout"     ;;
-              ui:inventory) SCRIPT="test:inventory"    ;;
-              ui:all)       SCRIPT="test:ui"           ;;
-              api:auth)     SCRIPT="test:api:auth"     ;;
-              api:products) SCRIPT="test:api:products" ;;
-              api:users)    SCRIPT="test:api:users"    ;;
-              api:all)      SCRIPT="test:api"          ;;
-              *)            SCRIPT="test:all"          ;;
-            esac
-          else
-            case "${{ inputs.user }}" in
-              standard)            SCRIPT="test:ui:standard"    ;;
-              problem)             SCRIPT="test:ui:problem"     ;;
-              performance_glitch)  SCRIPT="test:ui:performance" ;;
-              error)               SCRIPT="test:ui:error"       ;;
-              visual)              SCRIPT="test:ui:visual"      ;;
-              *)                   SCRIPT="test:ui"             ;;
-            esac
-          fi
+          case "${{ inputs.feature }}" in
+            api:auth)     SCRIPT="test:api:auth"     ;;
+            api:products) SCRIPT="test:api:products" ;;
+            api:users)    SCRIPT="test:api:users"    ;;
+            *)            SCRIPT="test:api"          ;;
+          esac
           echo "script=$SCRIPT" >> "$GITHUB_OUTPUT"
           echo "▶ npm run $SCRIPT"
 
@@ -110,22 +60,22 @@ jobs:
       - name: 🧪 Run tests
         id: run-tests
         run: npm run ${{ steps.resolve.outputs.script }}
-        continue-on-error: true   # el report se genera aunque fallen tests
+        continue-on-error: true
 
-      # ── Historial de Allure (para gráficos de tendencias) ──────────────────
+      # ── Historial de Allure ────────────────────────────────────────────────
       - name: 📥 Fetch Allure history from gh-pages
         uses: actions/checkout@v4
         with:
           ref: gh-pages
           path: gh-pages-prev
-        continue-on-error: true   # la primera vez el branch no existe
+        continue-on-error: true
 
       - name: 🗂️ Restore Allure history
         shell: bash
         run: |
           if [ -d "gh-pages-prev/history" ]; then
             cp -r gh-pages-prev/history allure-results/
-            echo "✅ Historial restaurado — los gráficos de tendencias estarán disponibles"
+            echo "✅ Historial restaurado"
           else
             echo "ℹ️  Sin historial previo (primera ejecución)"
           fi
@@ -155,11 +105,9 @@ jobs:
         run: |
           mkdir -p deploy/run-${{ github.run_number }}
           cp -r allure-report/. deploy/run-${{ github.run_number }}/
-          # Guardar history en raíz para que el próximo run lo restaure
           if [ -d "allure-report/history" ]; then
             cp -r allure-report/history deploy/history
           fi
-          # index.html raíz redirige siempre al run más reciente
           cat > deploy/index.html << EOF
           <!DOCTYPE html>
           <html>
@@ -182,28 +130,9 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./deploy
           force_orphan: true
-          commit_message: "ci: allure report — run #${{ github.run_number }} (${{ inputs.run_by }}=${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }})"
+          commit_message: "ci: allure report API — run #${{ github.run_number }} (feature=${{ inputs.feature }})"
 
-      # ── Bug Report .docx ──────────────────────────────────────────────────────
-      - name: 📝 Generate bug report
-        if: always()
-        run: |
-          TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
-          RUN_INFO="Run #${{ github.run_number }} | ${{ inputs.run_by }}: ${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }}"
-          node scripts/generate-bug-report.js \
-            --output "BugReport_${TIMESTAMP}.docx" \
-            --run-info "${RUN_INFO}"
-
-      # ── Upload .docx como artifact del run ───────────────────────────────────
-      - name: 📎 Upload bug report as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: bug-report-run-${{ github.run_number }}
-          path: BugReport_*.docx
-          retention-days: 30
-
-      # ── Esperar que GitHub Pages sirva el reporte ──────────────────────────────
+      # ── Esperar GitHub Pages ───────────────────────────────────────────────
       - name: ⏳ Wait for Pages deployment
         if: always()
         id: wait-pages
@@ -229,11 +158,11 @@ jobs:
             ELAPSED=$((ELAPSED + INTERVAL))
           done
 
-          echo "⚠️ Timeout: Pages no respondió en ${MAX_WAIT}s. El link puede tardar un momento más."
+          echo "⚠️ Timeout: Pages no respondió en ${MAX_WAIT}s."
           echo "pages_url=$PAGES_URL" >> "$GITHUB_OUTPUT"
           echo "pages_ready=false" >> "$GITHUB_OUTPUT"
 
-      # ── Job summary ────────────────────────────────────────────────────────────
+      # ── Job summary ────────────────────────────────────────────────────────
       - name: 📋 Job summary
         if: always()
         run: |
@@ -241,25 +170,20 @@ jobs:
           PAGES_READY="${{ steps.wait-pages.outputs.pages_ready }}"
           PAGES_STATUS=$( [ "$PAGES_READY" = "true" ] && echo "✅ Listo" || echo "⚠️ Puede tardar un momento más" )
 
-          echo "## 🧪 VMetrix QA — Run \`#${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 VMetrix QA — API — Run \`#${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Campo       | Valor |" >> $GITHUB_STEP_SUMMARY
           echo "|-------------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Modo        | \`${{ inputs.run_by }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Selección   | \`${{ inputs.run_by == 'feature' && inputs.feature || inputs.user }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Spec        | \`${{ inputs.feature }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests       | ${{ steps.run-tests.outcome == 'success' && '✅ Pasaron' || '❌ Fallaron' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Bugs en reporte | \`${BUG_COUNT:-0}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| GitHub Pages | ${PAGES_STATUS} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🐞 Bug Report" >> $GITHUB_STEP_SUMMARY
-          echo "📎 Disponible como artifact **bug-report-run-${{ github.run_number }}** en este run." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Allure Report" >> $GITHUB_STEP_SUMMARY
           echo "📎 Disponible como artifact **allure-report-run-${{ github.run_number }}** en este run." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🌐 **[Ver reporte en vivo →](${PAGES_URL})**" >> $GITHUB_STEP_SUMMARY
 
-      # ── Estado final del job ────────────────────────────────────────────────
+      # ── Estado final ───────────────────────────────────────────────────────
       - name: ❌ Fail if tests failed
         if: steps.run-tests.outcome == 'failure'
         run: |
