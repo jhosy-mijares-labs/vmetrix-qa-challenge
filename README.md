@@ -11,7 +11,7 @@ Framework de automatización de pruebas UI y API usando **Playwright + TypeScrip
 | Node.js | ≥ 18.x | Runtime |
 | TypeScript | ^5.4 | Lenguaje |
 | Playwright | ^1.44 | UI & API Testing |
-| Allure | ^2.x | Reportes |
+| Allure | ^3.x | Reportes |
 | Java | ≥ 17 | Requerido por Allure CLI |
 
 ---
@@ -24,6 +24,10 @@ vmetrix-qa-challenge/
 ├── global-setup.ts            # Login previo → genera .auth/<role>.json
 ├── tsconfig.json
 ├── package.json
+├── scripts/
+│   ├── generate-bug-report.js # Lee allure-results y genera .docx con fallos
+│   ├── upload-to-drive-pw.js  # Sube el .docx a Google Drive vía Playwright
+│   └── google-auth.js         # Setup one-time: captura sesión de Google
 └── src/
     ├── config/
     │   └── env.ts
@@ -130,13 +134,13 @@ npm run test:ui:visual
 
 ### UI — por feature
 
-**Cart** — todos los usuarios UI
+**Cart** — `standard_user`
 
 ```bash
 npm run test:cart
 ```
 
-**Checkout** — todos los usuarios UI
+**Checkout** — `standard_user`
 
 ```bash
 npm run test:checkout
@@ -180,14 +184,43 @@ npm run report:open       # Abre en el navegador
 | `test:ui:performance` | UI tests solo con `performance_glitch_user` |
 | `test:ui:error` | UI tests solo con `error_user` |
 | `test:ui:visual` | UI tests solo con `visual_user` |
-| `test:cart` | Solo `cart.spec.ts` con todos los usuarios UI |
-| `test:checkout` | Solo `checkout.spec.ts` con todos los usuarios UI |
+| `test:cart` | Solo `cart.spec.ts` con `standard_user` |
+| `test:checkout` | Solo `checkout.spec.ts` con `standard_user` |
 | `test:inventory` | Solo `inventory.spec.ts` con standard, error y visual |
 | `test:api` | Todos los tests de API |
+| `test:api:auth` | Solo `api/auth.spec.ts` |
+| `test:api:products` | Solo `api/products.spec.ts` |
+| `test:api:users` | Solo `api/users.spec.ts` |
 | `test:report` | `test:all` + genera y abre reporte |
 | `report` | Genera y abre el reporte desde resultados existentes |
 | `report:generate` | Solo genera el HTML de Allure |
 | `report:open` | Solo abre el reporte generado |
+
+---
+
+## 🐞 Bug Report automático
+
+Al finalizar cada ejecución en CI, el workflow genera automáticamente un reporte de bugs en `.docx` con los tests fallidos y lo sube a Google Drive.
+
+### Cómo funciona
+
+1. `scripts/generate-bug-report.js` lee los archivos `allure-results/*.json`, detecta los tests fallidos y genera un archivo `BugReport_<timestamp>.docx`.
+2. `scripts/upload-to-drive-pw.js` sube ese `.docx` a la carpeta de Drive configurada usando una sesión de Google capturada previamente (sin Service Account ni API keys).
+
+### Setup one-time (solo la primera vez)
+
+```bash
+# 1. Autenticarse con Google y capturar la sesión
+node scripts/google-auth.js
+# Abre el navegador → iniciar sesión → el script guarda google-auth.json
+
+# 2. Copiar el contenido de google-auth.json como secret en GitHub:
+#    Settings → Secrets and variables → Actions → New repository secret
+#    Nombre: GOOGLE_STORAGE_STATE
+#    Valor:  contenido completo del archivo google-auth.json
+```
+
+> Sin el secret `GOOGLE_STORAGE_STATE` configurado, el reporte `.docx` se genera igual pero no se sube a Drive. El CI no falla por esto.
 
 ---
 
