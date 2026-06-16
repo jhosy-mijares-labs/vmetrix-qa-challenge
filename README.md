@@ -23,27 +23,31 @@ Framework de automatización de pruebas UI y API usando **Playwright + TypeScrip
 
 ```
 vmetrix-qa-challenge/
-├── playwright.config.ts       # Configuración global + proyectos por usuario
-├── global-setup.ts            # Login previo → genera .auth/<role>.json
+├── .github/
+│   └── workflows/
+│       ├── run-ui-tests.yml        # 🎭 UI Tests + Allure Report
+│       └── run-api-tests.yml       # 🎭 API Tests + Allure Report
+├── playwright.config.ts            # Configuración global + proyectos por usuario
+├── global-setup.ts                 # Login previo → genera .auth/<role>.json
 ├── tsconfig.json
 ├── package.json
 ├── scripts/
-│   └── generate-bug-report.js # Lee allure-results y genera .docx con fallos
+│   └── generate-bug-report.js      # Lee allure-results y genera .docx con fallos (solo UI)
 └── src/
     ├── config/
     │   └── env.ts
     ├── data/
-    │   ├── users.ts           # Perfiles UI y API
-    │   ├── products.ts        # Constantes de productos
-    │   └── checkout.ts        # Datos de formularios
+    │   ├── users.ts                # Perfiles UI y API
+    │   ├── products.ts             # Constantes de productos
+    │   └── checkout.ts             # Datos de formularios
     ├── fixtures/
-    │   ├── uiFixtures.ts      # Fixtures de UI (InventoryPage, CartPage, CheckoutPage)
-    │   ├── apiFixtures.ts     # Fixtures de API
+    │   ├── uiFixtures.ts           # Fixtures de UI (InventoryPage, CartPage, CheckoutPage)
+    │   ├── apiFixtures.ts          # Fixtures de API
     │   └── index.ts
-    ├── pages/                 # Page Object Model
+    ├── pages/                      # Page Object Model
     │   ├── BasePage.ts
     │   ├── LoginPage.ts
-    │   ├── InventoryPage.ts   # + locators de header (hamburgerMenu, cartContainer, primaryHeader)
+    │   ├── InventoryPage.ts
     │   ├── CartPage.ts
     │   └── CheckoutPage.ts
     └── tests/
@@ -155,6 +159,19 @@ npm run test:inventory
 
 ---
 
+## 🚀 GitHub Actions
+
+El repositorio tiene dos workflows independientes que se ejecutan manualmente desde la pestaña **Actions**:
+
+| Workflow | Archivo | Inputs |
+|---|---|---|
+| 🎭 UI Tests + Allure Report | `run-ui-tests.yml` | `run_by` (feature / user), `feature`, `user` |
+| 🎭 API Tests + Allure Report | `run-api-tests.yml` | `feature` (all, auth, products, users) |
+
+Ambos publican el reporte Allure en GitHub Pages al finalizar.
+
+---
+
 ## 📊 Reportes Allure
 
 ### 🌐 Reporte en vivo (CI)
@@ -211,7 +228,7 @@ npm run report:open       # Abre en el navegador
 
 ## 🐞 Bug Report automático
 
-Al finalizar cada ejecución en CI, el workflow genera automáticamente un reporte de bugs en `.docx` con los tests fallidos y lo publica como artifact del run.
+Al finalizar cada ejecución del workflow **🎭 UI Tests + Allure Report**, se genera automáticamente un reporte de bugs en `.docx` con los tests fallidos y se publica como artifact del run.
 
 ### Cómo funciona
 
