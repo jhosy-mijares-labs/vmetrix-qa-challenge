@@ -155,3 +155,8 @@ playwright-report/
 
 # Playwright auth state (contiene cookies/tokens de sesión)
 .auth/
+# Google Drive auth — NUNCA commitear (contiene cookies de sesión de Google)
+google-auth.json
+
+# Bug reports generados en CI (van a Drive, no al repo)
+BugReport_*.docx
