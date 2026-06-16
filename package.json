@@ -39,7 +39,7 @@
   "homepage": "https://github.com/jhosy-mijares-labs/vmetrix-qa-challenge#readme",
   "devDependencies": {
     "@playwright/test": "^1.61.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^24.0.0",
     "allure-js-commons": "^3.10.0",
     "allure-playwright": "^3.10.0",
     "docx": "^9.7.1",
